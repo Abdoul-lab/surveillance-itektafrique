@@ -22,6 +22,11 @@ CONTROLES=(
   "Landing|https://digital.itektafrique-ci.com/|200|"
 )
 
+# Test des alertes : SIMULER_PANNE=true ajoute un contrôle qui échoue forcément.
+if [ "${SIMULER_PANNE:-false}" = "true" ]; then
+  CONTROLES+=("Test d'alerte (simulation volontaire)|https://www.itektafrique-ci.com/simulation-de-panne|200|")
+fi
+
 # Renvoie 0 si le contrôle passe. Écrit le diagnostic dans $DIAGNOSTIC.
 controler() {
   local adresse="$1" code_attendu="$2" texte="$3" corps code

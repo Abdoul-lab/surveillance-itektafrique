@@ -7,6 +7,11 @@ on:
   schedule:
     - cron: '*/15 * * * *'
   workflow_dispatch:
+    inputs:
+      simuler_panne:
+        description: "Tester les alertes : simuler une panne (une alerte s'ouvre, puis se ferme au passage suivant)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write   # signal de vie hebdomadaire (voir plus bas)
@@ -27,6 +32,9 @@ jobs:
       - name: Vérifier le site et le portail
         id: verif
         continue-on-error: true
+        env:
+          SIMULER_PANNE: ${{ inputs.simuler_panne || false }}
+          ESSAIS: ${{ inputs.simuler_panne && '1' || '3' }}
         run: ./verifier.sh
 
       - name: Ouvrir ou fermer l'alerte

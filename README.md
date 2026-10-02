@@ -21,7 +21,7 @@ Vérifie toutes les 15 minutes que les sites d'ITEKTAFRIQUE répondent :
 ## Fonctionnement
 
 - `verifier.sh` : les contrôles (lancer `./verifier.sh` sur un poste pour vérifier à la main).
-- `.github/workflows/surveillance.yml` : la planification et les alertes. Lancement manuel : onglet **Actions → Surveillance → Run workflow**.
+- `.github/workflows/surveillance.yml` : la planification et les alertes. Lancement manuel : onglet **Actions → Surveillance → Run workflow**. La case « Tester les alertes » simule une panne : une alerte s'ouvre (avec son e-mail), puis se ferme au passage suivant.
 - Dépôt public : les exécutions de GitHub Actions y sont gratuites et illimitées. Il ne contient aucun code du site ni aucun secret, seulement des adresses déjà publiques.
 - GitHub suspend les tâches planifiées d'un dépôt inactif depuis 60 jours : la surveillance fait un petit commit par semaine (`derniere-verification.txt`) pour rester active.
 - L'heure de passage des tâches planifiées de GitHub peut glisser de quelques minutes aux heures chargées.
