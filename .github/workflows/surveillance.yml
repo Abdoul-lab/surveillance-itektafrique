@@ -1,0 +1,68 @@
+name: Surveillance
+
+# Vérifie toutes les 15 minutes que le site et le portail répondent.
+# En cas de panne : une alerte (ticket « panne ») est ouverte, ce qui envoie un
+# e-mail au propriétaire du dépôt ; elle est commentée puis fermée au retour.
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write   # signal de vie hebdomadaire (voir plus bas)
+  issues: write     # ouverture / fermeture des alertes
+
+concurrency:
+  group: surveillance
+  cancel-in-progress: false
+
+jobs:
+  verifier:
+    name: Site et portail
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Vérifier le site et le portail
+        id: verif
+        continue-on-error: true
+        run: ./verifier.sh
+
+      - name: Ouvrir ou fermer l'alerte
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESULTAT: ${{ steps.verif.outcome }}
+          PANNES: ${{ steps.verif.outputs.pannes }}
+          JOURNAL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          ouverte="$(gh issue list --label panne --state open --json number --jq '.[0].number // empty')"
+          if [ "$RESULTAT" = "failure" ]; then
+            if [ -z "$ouverte" ]; then
+              gh label create panne --color B60205 --description "Site ou portail injoignable" 2>/dev/null || true
+              gh issue create --label panne \
+                --title "🔴 Panne détectée — $(date -u '+%d/%m/%Y %H:%M') UTC" \
+                --body "$(printf 'La surveillance a détecté un problème (après 3 essais à une minute d'\''intervalle) :\n\n%s\n\nDétail : %s\n\nCette alerte sera commentée puis fermée automatiquement quand tout répondra de nouveau.' "$PANNES" "$JOURNAL")"
+            fi
+          elif [ -n "$ouverte" ]; then
+            gh issue comment "$ouverte" --body "✅ Tout répond de nouveau ($(date -u '+%d/%m/%Y %H:%M') UTC). Détail : $JOURNAL"
+            gh issue close "$ouverte"
+          fi
+
+      # GitHub suspend les tâches planifiées d'un dépôt sans activité depuis
+      # 60 jours : un petit commit par semaine les garde actives.
+      - name: Signal de vie hebdomadaire
+        if: always()
+        run: |
+          if [ $(( $(date +%s) - $(git log -1 --format=%ct) )) -gt 604800 ]; then
+            date -u '+%Y-%m-%dT%H:%M:%SZ' > derniere-verification.txt
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add derniere-verification.txt
+            git commit -m "Signal de vie hebdomadaire de la surveillance"
+            git push
+          fi
+
+      - name: Signaler l'échec
+        if: steps.verif.outcome == 'failure'
+        run: exit 1
