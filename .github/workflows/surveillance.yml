@@ -5,7 +5,9 @@ name: Surveillance
 # e-mail au propriétaire du dépôt ; elle est commentée puis fermée au retour.
 on:
   schedule:
-    - cron: '*/15 * * * *'
+    # Minutes décalées (7, 22, 37, 52) plutôt que rondes : GitHub lance les tâches
+    # planifiées avec retard, surtout aux minutes 0, 15, 30 et 45, très demandées.
+    - cron: '7,22,37,52 * * * *'
   workflow_dispatch:
     inputs:
       simuler_panne:
